@@ -33,8 +33,7 @@ instance Extend Id where
     (Id a -> b)
     -> Id a
     -> Id b
-  (<<=) =
-    error "todo: Course.Extend (<<=)#instance Id"
+  f <<= a = Id (f a)
 
 -- | Implement the @Extend@ instance for @List@.
 --
@@ -51,8 +50,14 @@ instance Extend List where
     (List a -> b)
     -> List a
     -> List b
-  (<<=) =
-    error "todo: Course.Extend (<<=)#instance List"
+  _ <<= Nil = Nil
+  f <<= ls@(_:.t) = f ls :. (f <<= t)
+
+-- Reading the doctests, it looks like you run the first function on
+-- successive tails of the list and then concatenate them.  At first,
+-- I tried to work with the whole list without deconstructing it, but
+-- I was trying to make it work from too high a level of abstraction
+-- and had to move down a level.
 
 -- | Implement the @Extend@ instance for @Optional@.
 --
@@ -66,8 +71,20 @@ instance Extend Optional where
     (Optional a -> b)
     -> Optional a
     -> Optional b
-  (<<=) =
-    error "todo: Course.Extend (<<=)#instance Optional"
+  -- f <<= a = case a of
+    -- Empty -> Empty
+    -- _ ->  Full $ f a
+  -- his solution:
+  f <<= a = f . Full <$> a
+
+-- Instead of using `case` and going low level, you can just stay at
+-- the <$> level.  His solution tacks on an extra `Full` to be
+-- stripped off by `f`, whereas mine pulls the value out of the
+-- `Optional` and then puts the `Full` or `Empty` back on based on the
+-- value.  A little clunkier by comparison.  This time I started too
+-- low - which is ok, since I was able to do it, but it was clunkier
+-- and if the problem was harder maybe I wouldn't have been
+-- successful.
 
 -- | Duplicate the functor using extension.
 --
@@ -86,5 +103,8 @@ cojoin ::
   Extend f =>
   f a
   -> f (f a)
-cojoin =
-  error "todo: Course.Extend#cojoin"
+cojoin f = id <<= f
+
+-- `(<<=) :: (f a -> b) -> f a -> f b` : so if we have `b ~= f a` then
+-- we get `::(f a -> f a) -> f a -> f (f a)`, now we just toss in an
+-- `id` and be done with it.

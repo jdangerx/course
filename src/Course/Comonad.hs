@@ -32,8 +32,8 @@ instance Comonad Id where
   copure ::
     Id a
     -> a
-  copure =
-    error "todo: Course.Comonad copure#instance Id"
+  copure (Id a) = a
+    -- error "todo: Course.Comonad copure#instance Id"
 
 -- | Witness that all things with (<<=) and copure also have (<$>).
 --
@@ -44,5 +44,11 @@ instance Comonad Id where
   (a -> b)
   -> f a
   -> f b
-(<$>) =
-  error "todo: Course.Comonad#(<$>)"
+f <$> a = (f . copure) <<= a
+
+-- You can think of `<$>` as sort of "extending" the functor on the
+-- right side over the function on the left side.
+
+-- Extend `a :: f a` into whatever is on the left side - the left side
+-- now wants `f a -> b` - so if you attach a `copure` to that you get
+-- `a -> b`, which is the type of `f`.

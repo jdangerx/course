@@ -62,8 +62,13 @@ the contents of c
 -- /Tip:/ use @getArgs@ and @run@
 main ::
   IO ()
-main =
-  error "todo: Course.FileIO#main"
+main = getArgs >>= \args -> case args of
+  (fp:.Nil) -> run fp
+  _ -> putStrLn "We want one and only one argument, dingus."
+
+-- get args, and stick the args into a fn that takes a list of args
+-- and either runs or gives 'help'.
+
 
 type FilePath =
   Chars
@@ -72,31 +77,51 @@ type FilePath =
 run ::
   Chars
   -> IO ()
-run =
-  error "todo: Course.FileIO#run"
+-- run toc = do
+  -- contents <- readFile toc
+  -- getFiles (lines contents) >>= printFiles
+run toc = readFile toc >>= getFiles . lines >>= printFiles
+
+-- read the toc
+-- `getFiles . lines` turns the toc into `List Chars` before `getFiles`ing them.
+-- print out the gotten files
 
 getFiles ::
   List FilePath
   -> IO (List (FilePath, Chars))
-getFiles =
-  error "todo: Course.FileIO#getFiles"
+getFiles = sequence . map getFile
+
+-- `map getFile` gets file for each fp in the list, sequence pulls the
+-- whole list into a single IO
 
 getFile ::
   FilePath
   -> IO (FilePath, Chars)
-getFile =
-  error "todo: Course.FileIO#getFile"
+-- getFile fp = do
+  -- contents <- readFile fp
+  -- return (fp, contents)
+getFile fp = readFile fp >>= \contents -> pure (fp, contents)
+
+-- read the file
+-- stick the filepath and contents into a pair and return
 
 printFiles ::
   List (FilePath, Chars)
   -> IO ()
-printFiles =
-  error "todo: Course.FileIO#printFiles"
+printFiles = void . sequence . (<$>) (uncurry printFile)
+
+-- `map (uncurry printFile)` prints every file
+-- `void . sequence` pulls them into an IO()
 
 printFile ::
   FilePath
   -> Chars
   -> IO ()
-printFile =
-  error "todo: Course.FileIO#printFile"
+-- printFile fp contents = do
+--   putStrLn ("============ " ++ fp)
+--   putStrLn contents
+printFile fp contents = putStrLn ("============ " ++ fp) >>
+                        putStrLn contents
+
+-- f >> g ~= f >>= \_ -> g
 

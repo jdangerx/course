@@ -68,8 +68,7 @@ infixr 1 =<<
   f (a -> b)
   -> f a
   -> f b
-(<*>) =
-  error "todo: Course.Bind#(<*>)"
+(<*>) f a = (<$> a) =<< f
 
 infixl 4 <*>
 
@@ -82,8 +81,7 @@ instance Bind Id where
     (a -> Id b)
     -> Id a
     -> Id b
-  (=<<) =
-    error "todo: Course.Bind (=<<)#instance Id"
+  f =<< (Id a) = f a
 
 -- | Binds a function on a List.
 --
@@ -94,8 +92,7 @@ instance Bind List where
     (a -> List b)
     -> List a
     -> List b
-  (=<<) =
-    error "todo: Course.Bind (=<<)#instance List"
+  (=<<) = flatMap
 
 -- | Binds a function on an Optional.
 --
@@ -106,8 +103,7 @@ instance Bind Optional where
     (a -> Optional b)
     -> Optional a
     -> Optional b
-  (=<<) =
-    error "todo: Course.Bind (=<<)#instance Optional"
+  (=<<) = bindOptional
 
 -- | Binds a function on the reader ((->) t).
 --
@@ -118,8 +114,7 @@ instance Bind ((->) t) where
     (a -> ((->) t b))
     -> ((->) t a)
     -> ((->) t b)
-  (=<<) =
-    error "todo: Course.Bind (=<<)#instance ((->) t)"
+  f =<< g = \t -> f (g t) t
 
 -- | Flattens a combined structure to a single structure.
 --
@@ -138,8 +133,7 @@ join ::
   Bind f =>
   f (f a)
   -> f a
-join =
-  error "todo: Course.Bind#join"
+join f = id =<< f
 
 -- | Implement a flipped version of @(=<<)@, however, use only
 -- @join@ and @(<$>)@.
@@ -152,8 +146,9 @@ join =
   f a
   -> (a -> f b)
   -> f b
-(>>=) =
-  flip (=<<)
+a >>= f = join $ f <$> a
+-- the idea here is that f <$> a will get you f (f b), so then we run
+-- a join on it to bring it down a notch.
 
 infixl 1 >>=
 
@@ -168,8 +163,10 @@ infixl 1 >>=
   -> (a -> f b)
   -> a
   -> f c
-(<=<) =
-  error "todo: Course.Bind#(<=<)"
+g <=< f = \a -> f a >>= g
+
+-- we need a function that takes a to f c, so we use f a to get f b -
+-- then we bind g on f a so we get f c.
 
 infixr 1 <=<
 

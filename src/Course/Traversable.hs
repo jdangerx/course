@@ -35,3 +35,7 @@ instance Traversable List where
     -> f (List b)
   traverse f =
     foldRight (\a b -> (:.) <$> f a <*> b) (pure Nil)
+  -- `f a :: f b`; `b :: f (List b)`; so we are lifting `(:.)` and
+  -- applying `f` to each elt of the list, then putting that back in
+  -- the list
+

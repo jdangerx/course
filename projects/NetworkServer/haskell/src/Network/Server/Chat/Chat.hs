@@ -10,6 +10,8 @@ import Control.Monad.Trans(MonadIO(..))
 
 type Chat a =
   IORefLoop Integer a
+  -- A `Chat a` is a loop whose env value is an `IORef Integer` and
+  -- whose return value is an `IO a`
 
 data ChatCommand =
   Chat String
@@ -53,5 +55,4 @@ chatCommand z =
 process ::
   ChatCommand
   -> Chat ()
-process =
-  error "todo"
+process _ = Loop (const $ return ())

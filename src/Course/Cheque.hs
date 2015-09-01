@@ -25,6 +25,10 @@ import Course.List
 import Course.Functor
 import Course.Apply
 import Course.Bind
+import Course.Parser
+import Course.MoreParser
+
+import Prelude (Double)
 
 -- $setup
 -- >>> :set -XOverloadedStrings
@@ -323,5 +327,41 @@ fromChar _ =
 dollars ::
   Chars
   -> Chars
-dollars =
-  error "todo: Course.Cheque#dollars"
+dollars s =
+  let (f, l) = break (== '.') s in
+   maybeDoubleToWords (filter isDigit f, filter isDigit l)
+
+maybeDoubleToWords ::
+  (Chars, Chars)
+  -> Chars
+-- maybeDoubleToWords Empty Empty = "zero dollars and zero cents"
+-- maybeDoubleToWords (Full bucks) Empty = digitsToDollars bucks + " dollars and zero cents"
+maybeDoubleToWords (bucks, cents) =
+  digitsToDollars bucks ++ " dollars and " ++ digitsToCents cents ++ " cents"
+
+digitsToDollars ::
+  Chars -> Chars
+digitsToDollars s =
+  case read s of
+   Empty -> "zero"
+   (Full val) -> if val < 1000
+                then lessThanThousand val
+                else "way too many"
+
+lessThanThousand ::
+  Integer -> Chars
+lessThanThousand = const "hundreds"
+
+
+digitsToCents ::
+  Chars -> Chars
+digitsToCents s =
+  case read s of
+   Empty -> "zero"
+   (Full val) -> case length s of
+                 -- 0 -> "zero"
+                 1 -> showDigit . fromChar s
+                 -- 2 -> showDigit . fromChar <$> s
+                 _ -> "zero"
+
+  -- error "todo: Course.Cheque#dollars"

@@ -22,16 +22,44 @@ import qualified Data.Set as S
 
 data Loop v f a =
   Loop (Env v -> f a)
+-- `Loop` is a function that reads something from an `Env` and
+-- produces some value wrapped in a monad.  And an `Env v` is just a
+-- container for a client, a list of all clients, and some value of
+-- type `v`.
 
 type IOLoop v a =
   Loop v IO a
+-- IOLoop is a Loop that takes an `Env` and returns an `IO a`.
 
 type IORefLoop v a =
   IOLoop (IORef v) a
+-- `IORefLoop` is a `Loop (IORef v) IO a`. Basically the env value is now
+-- a mutable variable in the IO monad.
 
 instance Functor f => Functor (Loop v f) where
   fmap f (Loop k) =
     Loop (fmap f . k)
+  -- `f <$> (Loop k) :: Loop (Env v -> f b)`
+
+  -- If we apply `k` to an Env we get `a` wrapped in a monad. So we
+  -- need to `fmap f` into it.
+
+instance Applicative f => Applicative (Loop v f) where
+  pure = Loop . pure . pure
+  Loop k <*> Loop l = Loop (\env -> k env <*> l env)
+
+  -- `pure :: a -> Loop v f`
+
+  -- So we need to make a Loop (Env v -> f a); `Loop (pure _)` wants
+  -- `_ :: f a` so we need another `pure a` in there.
+
+  -- `k :: Env v -> f (a -> b)`
+
+  -- `l :: Env v -> f a`
+
+  -- So `k env <*> l env :: f b`, and we can stick that in a `Loop` to
+  -- get what we want.  Basically, we take an `env`, run `l` and `k`
+  -- on it, then jam those results together so we get an `f b`.
 
 instance Monad f => Monad (Loop v f) where
   return =
@@ -40,10 +68,26 @@ instance Monad f => Monad (Loop v f) where
     Loop (\v -> k v >>= \a ->
       let Loop l = f a
       in l v)
+  -- `return` is `pure`
+
+  -- Calling the type `f` `m` for now because of confusion. `f` is the
+  -- function, `m` is the monad. `(>>=)`: we need a `Loop v m b` where
+  -- `f :: a -> Loop v m b`
+
+  -- So we run `k` on `env`, producing an `m a`, bind that into a
+  -- function that takes `a`, gets a function `l :: Env v -> m b` out
+  -- of it by deconstructing `f a`.  We need to get a `m b` out of the
+  -- `\v -> ...` function, we can run `l` on `v` to get that.
+
+  -- So in plein English we take an environment, run the first loop on
+  -- it, run a function on the result of the first loop to get another
+  -- loop, and run that on the environment to get a new type of value
+  -- out wrapped in the same monad.
 
 instance MonadTrans (Loop v) where
   lift =
     Loop . const
+  -- `lift` takes a monadic value and wraps it in a `Loop v`.
 
 instance MonadIO f => MonadIO (Loop v f) where
   liftIO =
@@ -81,8 +125,17 @@ perClient ::
   IOLoop v x -- client accepted (post)
   -> (String -> IOLoop v a) -- read line from client
   -> IOLoop v ()
-perClient =
-  error "todo"
+perClient q f =
+  -- Loop (\env -> lGetLine (acceptL `getL` env))
+  -- >>= f >>= q
+  Loop (\env ->
+         forever $ do
+           input <- lGetLine (acceptL `getL` env)
+           let Loop getClientsFromEnv = allClients
+           let clients = getClientsFromEnv env
+           q env
+       )
+
 
 loop ::
   IO w -- server initialise
@@ -107,7 +160,6 @@ iorefLoop ::
   -> IO a
 iorefLoop x q f =
   iorefServer x (perClient q f)
-
 pPutStrLn ::
   String
   -> IOLoop v ()

@@ -76,9 +76,9 @@ library
                    , Network.Server.Common.Line
                    , Network.Server.Common.Ref
                    , Network.Server.Common
-                   , Network.Server.TicTacToe.Game
-                   , Network.Server.TicTacToe.Loop
-                   , Network.Server.TicTacToe
+                   -- , Network.Server.TicTacToe.Game
+                   -- , Network.Server.TicTacToe.Loop
+                   -- , Network.Server.TicTacToe
                    , Network.Server
 
 test-suite          doctests

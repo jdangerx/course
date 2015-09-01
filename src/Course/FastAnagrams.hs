@@ -14,8 +14,10 @@ fastAnagrams ::
   Chars
   -> Filename
   -> IO (List Chars)
-fastAnagrams =
-  error "todo: Course.FastAnagrams#fastAnagrams"
+fastAnagrams s dictname = let perms = S.fromList . hlist $ permutations s in
+  filter (`S.member` perms) <$> lines <$> readFile dictname
+  -- use a set instead of a janky list + find
+  -- error "todo: Course.FastAnagrams#fastAnagrams"
 
 newtype NoCaseString =
   NoCaseString {

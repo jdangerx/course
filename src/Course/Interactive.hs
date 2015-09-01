@@ -83,8 +83,10 @@ data Op =
 -- /Tip:/ @putStrLn :: String -> IO ()@ -- Prints a string and then a new line to standard output.
 convertInteractive ::
   IO ()
-convertInteractive =
-  error "todo: Course.Interactive#convertInteractive"
+convertInteractive = vooid (putStrLn "Enter a string to convert to uppercase"
+                           >- getLine
+                           >>= putStrLn . (toUpper <$>))
+  -- error "todo: Course.Interactive#convertInteractive"
 
 -- |
 --
@@ -111,8 +113,15 @@ convertInteractive =
 -- /Tip:/ @putStrLn :: String -> IO ()@ -- Prints a string and then a new line to standard output.
 reverseInteractive ::
   IO ()
-reverseInteractive =
-  error "todo: Course.Interactive#reverseInteractive"
+reverseInteractive = vooid (putStrLn "Enter a file to reverse:"
+                            >- getLine
+                            >>= \ifile -> putStrLn "Enter an output file:"
+                                         >- getLine
+                                         >>= \ofile -> readFile ifile
+                                                      >>= pure . reverse
+                                                      >>= writeFile ofile)
+-- I guess it's time for do syntax, I know how to use these nested lambdas now.
+  -- error "todo: Course.Interactive#reverseInteractive"
 
 -- |
 --
@@ -138,7 +147,18 @@ reverseInteractive =
 encodeInteractive ::
   IO ()
 encodeInteractive =
-  error "todo: Course.Interactive#encodeInteractive"
+  let encode = foldRight (\c cs -> case c of
+                           ' ' -> "%20" ++ cs
+                           '\t' -> "%09" ++ cs
+                           '\"' -> "%22" ++ cs
+                           _ -> c :. cs) Nil in
+  vooid (
+    putStrLn "Enter a string to url-encode: "
+    >- getLine
+    >>= pure . encode
+    >>= putStrLn)
+
+  -- error "todo: Course.Interactive#encodeInteractive"
 
 interactive ::
   IO ()

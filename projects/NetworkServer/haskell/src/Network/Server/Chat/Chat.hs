@@ -58,15 +58,27 @@ chatCommand z =
 cleanupHostName :: String -> String
 cleanupHostName = reverse . takeWhile (/= ':') . reverse
 
+cleanupRef :: String -> String
+cleanupRef = takeWhile (/= '>') . drop 1 . dropWhile (/= '<')
+
 process ::
   ChatCommand
   -> Chat ()
 process Incr = do
   incr
   counter <- readIOEnvval
-  hostname <- readEnv >>= (\env -> Loop . pure . pure $ hostNameL `getL` (acceptL `getL` env))
-  allClients ! cleanupHostName hostname ++ " > the count is " ++ show counter
+  ref <- readEnv
+        >>= (\env -> Loop . pure . pure $
+                    cleanupRef . show $
+                    refL `getL` (acceptL `getL` env))
+  -- hostname <- readEnv >>= (\env -> Loop . pure . pure $ hostNameL `getL` (acceptL `getL` env))
+  allClients ! ref ++ " > the count is " ++ show counter
 process (Chat msg) = do
-  hostname <- readEnv >>= (\env -> Loop . pure . pure $ hostNameL `getL` (acceptL `getL` env))
-  allClientsButThis ! (cleanupHostName hostname ++ " > " ++ msg)
+  -- hostname <- readEnv >>= (\env -> Loop . pure . pure $ hostNameL `getL` (acceptL `getL` env))
+  ref <- readEnv
+        >>= (\env -> Loop . pure . pure $
+                    cleanupRef . show $
+                    refL `getL` (acceptL `getL` env))
+  allClientsButThis ! (ref ++ " > " ++ msg)
+  -- allClientsButThis ! (cleanupHostName hostname ++ " > " ++ msg)
 process (Unknown cmd) = pPutStrLn ("UNKNOWN " ++ cmd)

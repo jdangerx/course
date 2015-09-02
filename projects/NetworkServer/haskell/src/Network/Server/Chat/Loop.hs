@@ -118,21 +118,80 @@ server i r (Loop f) =
        c <- newIORef S.empty
        hand s w c `finally` sClose s
 
+-- `server` takes an initial value of type `IO w`, a function that takes
+-- something of type `w` and turns it into an `IO v`, and a Loop which 
+-- takes an `Env v` and takes it to `IO a`.
+
+-- Grab a socket, initial value, and initial set of clients out of IO
+-- values, and send those to `hand`.
+
+-- `hand :: Network.Socket.Types.Socket -> w -> IORef (S.Set Ref) ->
+-- IO a`
+
+-- `forever` takes some `m a` and just does it over and over again.
+-- `do ... :: IO ThreadId` is the type of the do block that repeats
+-- over and over again.
+
+-- First we get an `Accept` out of the socket by using `accept' ::
+-- Socket -> IO Accept`. Then we use `lSetBuffering`, which uses lenses,
+-- to set the buffering value of the `Handle` inside `q.`
+
+-- then `r w :: IO v` gets bound to `x :: v` - we call a function on
+-- the initial value to turn it into a form palatable to `f`
+
+-- then we forkIO a call to `f` and `Env v`, which should do stuff and
+-- take `Env q c x :: Env v` to an `IO ()`
+
+-- So when a new socket connection is opened on a port, Haskell
+-- decides to make an environment which contains all the clients, the
+-- connecting client, and some function of the initial state. Then it
+-- calls `f` on that environment to generate some IO action that we
+-- fork out into a different thread.
+
 allClients :: IOLoop v (Set Ref)
 allClients = Loop $ \env -> readIORef (clientsL `getL` env)
+
+-- This is a `Loop` that takes an env and uses a lens to grab the
+-- clients set (and wrap it in an IO). The client set is an `IORef
+-- (Set Ref)`, and `readIORef` turns that into an `IO (Set Ref)`.  I'd
+-- imagine that in the real Lens library there's some way to "apply a
+-- function to the `getL`'d part of a lensed object" without writing a
+-- lambda...
 
 perClient ::
   IOLoop v x -- client accepted (post)
   -> (String -> IOLoop v a) -- read line from client
   -> IOLoop v ()
-perClient (Loop q) f =
-  Loop (\env ->
-         forever $ do
-           input <- lGetLine (acceptL `getL` env)
-           let Loop process = f input
-           process env
-       )
+perClient _ f = pPutStrLn "Hello and welcome to my chat server!"
+                >> pPutStrLn "Commands (case-insensitive) are: CHAT <msg> and INCR"
+                >> forever (readEnv
+                >>= (\env -> Loop . pure $ lGetLine (acceptL `getL` env))
+                >>= f)
+  -- Loop (\env ->
+         -- forever $ lGetLine (acceptL `getL` env) >>= f
+           -- input <- lGetLine (acceptL `getL` env)
+           -- let Loop process = f input
+           -- process env
+       -- )
 
+-- This is a function from an Env to an IO action - weirdly it seems
+-- to not need the first arg...
+
+-- old, commented out version:
+-- So we take the env, and loop over this action forever:
+-- 1. get a line from the handle, which we access through lenses again
+-- 2. pull the function out of `f input`
+-- 3. apply that function to the env
+
+-- this pattern looks like the definition of `(>>=)`...
+
+-- new, shiny definition:
+-- Do this forever:
+-- 1. get the env
+-- 2. bind this into a function that takes the env, and makes a Loop
+--    that produces the `lGetLine` from the env.
+-- 3. bind that into f, which does whatever IO stuff you wanna do with
+--    that string.
 
 loop ::
   IO w -- server initialise

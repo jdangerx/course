@@ -55,13 +55,18 @@ chatCommand z =
                              , Incr <$ trimPrefixThen "INCR" z
                              ]
 
+cleanupHostName :: String -> String
+cleanupHostName = reverse . takeWhile (/= ':') . reverse
+
 process ::
   ChatCommand
   -> Chat ()
 process Incr = do
   incr
   counter <- readIOEnvval
-  allClients ! "> the count is " ++ show counter
-process (Chat msg) =
-  allClientsButThis ! ("> " ++ msg)
+  hostname <- readEnv >>= (\env -> Loop . pure . pure $ hostNameL `getL` (acceptL `getL` env))
+  allClients ! cleanupHostName hostname ++ " > the count is " ++ show counter
+process (Chat msg) = do
+  hostname <- readEnv >>= (\env -> Loop . pure . pure $ hostNameL `getL` (acceptL `getL` env))
+  allClientsButThis ! (cleanupHostName hostname ++ " > " ++ msg)
 process (Unknown cmd) = pPutStrLn ("UNKNOWN " ++ cmd)

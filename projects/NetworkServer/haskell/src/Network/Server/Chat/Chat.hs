@@ -1,6 +1,9 @@
 module Network.Server.Chat.Chat where
 
 import Network.Server.Common.Line
+import Network.Server.Common.Env
+import Network.Server.Common.Accept
+import Network.Server.Common.Lens
 import Network.Server.Chat.Loop
 import Data.Maybe(fromMaybe)
 import Data.Foldable(msum)
@@ -55,4 +58,10 @@ chatCommand z =
 process ::
   ChatCommand
   -> Chat ()
-process _ = Loop (const $ return ())
+process Incr = do
+  incr
+  counter <- readIOEnvval
+  allClients ! "> the count is " ++ show counter
+process (Chat msg) =
+  allClientsButThis ! ("> " ++ msg)
+process (Unknown cmd) = pPutStrLn ("UNKNOWN " ++ cmd)

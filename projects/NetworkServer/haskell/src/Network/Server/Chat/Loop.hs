@@ -125,15 +125,12 @@ perClient ::
   IOLoop v x -- client accepted (post)
   -> (String -> IOLoop v a) -- read line from client
   -> IOLoop v ()
-perClient q f =
-  -- Loop (\env -> lGetLine (acceptL `getL` env))
-  -- >>= f >>= q
+perClient (Loop q) f =
   Loop (\env ->
          forever $ do
            input <- lGetLine (acceptL `getL` env)
-           let Loop getClientsFromEnv = allClients
-           let clients = getClientsFromEnv env
-           q env
+           let Loop process = f input
+           process env
        )
 
 
